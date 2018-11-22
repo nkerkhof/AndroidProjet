@@ -4,6 +4,7 @@ import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -33,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private Chapter[] chapters ;
     private OurViewModel mModel;
     private WebView myWebView;
+    private Handler mHandler;
 
 
     @Override
@@ -40,15 +42,21 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         mModel = ViewModelProviders.of(this).get(OurViewModel.class);
 
-
-
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         myWebView = findViewById(R.id.webView);
         myWebView.setWebViewClient(new WebViewClient());
-        myWebView.loadUrl("https://fr.wikipedia.org/wiki/Introduction_en_bourse");
         videoView = findViewById(R.id.videoView);
+        final Observer<Integer> posObserver = new Observer<Integer>() {
+            @Override
+            public void onChanged(@Nullable final Integer position) {
+                //changeTimeTo(position);
+                changeURLTo(position);
+            }
+        };
+
+        mModel.getmCurrentPosition().observe(this, posObserver);
         if(mediaController == null){
             mediaController = new MediaController(MainActivity.this);
             mediaController.setAnchorView(videoView);
@@ -57,10 +65,10 @@ public class MainActivity extends AppCompatActivity {
         try{
             videoView.setVideoURI(Uri.parse("https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"));
             videoView.start();
+            videoView.seekTo(mModel.getmCurrentPosition().getValue());
         } catch(Exception e){
             Log.e("Error oups",e.getMessage());
         }
-
 
         LinearLayout chaptLay = findViewById(R.id.boutons);
         chapters = parseJsonChapters();
@@ -73,15 +81,9 @@ public class MainActivity extends AppCompatActivity {
             b.setOnClickListener(new OurClickListener(chapters[i].getMsTime()));
         }
 
-        final Observer<Integer> posObserver = new Observer<Integer>() {
-            @Override
-            public void onChanged(@Nullable final Integer position) {
-                changeTimeTo(position);
-                changeURLTo(position);
-            }
-        };
 
-        mModel.getmCurrentPosition().observe(this, posObserver);
+        mHandler = new Handler();
+        mStatusChecker.run();
     }
 
 
@@ -198,7 +200,7 @@ public class MainActivity extends AppCompatActivity {
         }
         @Override
         public void onClick(View v) {
-            //changeTimeTo(ms);
+            changeTimeTo(ms);
             mModel.getmCurrentPosition().setValue(ms);
         }
     }
@@ -212,11 +214,35 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public Chapter getChapterByTime(int ms){
-        int j = 0;
-        while(j < chapters.length && chapters[j].getMsTime() != ms){
-            j++;
+        int worstTime = 99999999;
+        Chapter bestC = null;
+        for(int i=0; i<chapters.length; i++) {
+            int diff = ms - chapters[i].getMsTime();
+            if (diff >= 0 && diff < worstTime) {
+                worstTime = diff;
+                bestC = chapters[i];
+            }
         }
-        return chapters[j];
+        return bestC;
+    }
+    Runnable mStatusChecker = new Runnable() {
+        @Override
+        public void run() {
+            try {
+                mModel.getmCurrentPosition().postValue(videoView.getCurrentPosition());
+            } finally {
+                // 100% guarantee that this always happens, even if
+                // your update method throws an exception
+
+                mHandler.postDelayed(mStatusChecker, 1000);
+            }
+        }
+    };
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mHandler.removeCallbacks(mStatusChecker);
     }
 
 }
