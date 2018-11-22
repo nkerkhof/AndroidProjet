@@ -1,14 +1,10 @@
 package com.example.nilskerkhof.myapplication;
 
 import android.arch.lifecycle.Observer;
-import android.arch.lifecycle.ViewModelProvider;
 import android.arch.lifecycle.ViewModelProviders;
-import android.net.Uri;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
@@ -18,7 +14,6 @@ import android.view.MenuItem;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
-import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.VideoView;
@@ -28,7 +23,8 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Array;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     private MediaController mediaController;
     private Chapter[] chapters ;
     private OurViewModel mModel;
+    private WebView myWebView;
 
 
     @Override
@@ -43,12 +40,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         mModel = ViewModelProviders.of(this).get(OurViewModel.class);
 
+
+
         setContentView(R.layout.activity_main);
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        WebView myWebView = findViewById(R.id.webView);
+        myWebView = findViewById(R.id.webView);
         myWebView.setWebViewClient(new WebViewClient());
-        myWebView.loadUrl("https://en.wikipedia.org/wiki/Big_Buck_Bunny");
+        myWebView.loadUrl("https://fr.wikipedia.org/wiki/Introduction_en_bourse");
         videoView = findViewById(R.id.videoView);
         if(mediaController == null){
             mediaController = new MediaController(MainActivity.this);
@@ -57,27 +56,28 @@ public class MainActivity extends AppCompatActivity {
         }
         try{
             videoView.setVideoURI(Uri.parse("https://download.blender.org/peach/bigbuckbunny_movies/BigBuckBunny_320x180.mp4"));
+            videoView.start();
         } catch(Exception e){
             Log.e("Error oups",e.getMessage());
         }
 
+
         LinearLayout chaptLay = findViewById(R.id.boutons);
         chapters = parseJsonChapters();
         for(int i = 0; i<chapters.length; i++){
-            Log.v("Ajout du bouton",chapters[i].getTitle());
             Button b = new Button(this);
             b.setText(chapters[i].getTitle());
             b.setId(i);
             chaptLay.addView(b);
             chapters[i].setAssocButton(b);
-            Log.v("CHANGET ",String.valueOf(chapters[i].getsTime()));
-            b.setOnClickListener(new OurClickListener(chapters[i].getsTime()*1000));
+            b.setOnClickListener(new OurClickListener(chapters[i].getMsTime()));
         }
 
         final Observer<Integer> posObserver = new Observer<Integer>() {
             @Override
             public void onChanged(@Nullable final Integer position) {
                 changeTimeTo(position);
+                changeURLTo(position);
             }
         };
 
@@ -117,9 +117,10 @@ public class MainActivity extends AppCompatActivity {
             allChapters = new Chapter[chapters.length()];
             for(int i=0;i<chapters.length();i++){
                 JSONObject chap = chapters.getJSONObject(i);
-                int seconds = chap.getInt("start_time");
+                int mseconds = chap.getInt("start_time")*1000;
                 String title = chap.getString("title");
-                allChapters[i] = new Chapter(title, seconds);
+                String url = chap.getString("url");
+                allChapters[i] = new Chapter(title, mseconds, url);
             }
 
         } catch(Exception e){
@@ -130,12 +131,23 @@ public class MainActivity extends AppCompatActivity {
 
     public class Chapter{
         private String title;
-        private int sTime;
+        private int msTime;
         private Button assocButton;
 
-        public Chapter(String title, int sTime) {
+        public String getUrl() {
+            return url;
+        }
+
+        public void setUrl(String url) {
+            this.url = url;
+        }
+
+        private String url;
+
+        public Chapter(String title, int msTime, String url) {
             this.title = title;
-            this.sTime = sTime;
+            this.msTime = msTime;
+            this.url = url;
         }
         public Button getAssocButton() {
             return assocButton;
@@ -148,16 +160,16 @@ public class MainActivity extends AppCompatActivity {
             return title;
         }
 
-        public int getsTime() {
-            return sTime;
+        public int getMsTime() {
+            return msTime;
         }
 
         public void setTitle(String title) {
             this.title = title;
         }
 
-        public void setsTime(int msTime) {
-            this.sTime = sTime;
+        public void setMsTime(int msTime) {
+            this.msTime = this.msTime;
         }
     }
 
@@ -175,7 +187,6 @@ public class MainActivity extends AppCompatActivity {
             ex.printStackTrace();
             return json;
         }
-        Log.v("PARESEUR",json);
         return json;
     }
 
@@ -187,14 +198,25 @@ public class MainActivity extends AppCompatActivity {
         }
         @Override
         public void onClick(View v) {
-            changeTimeTo(ms);
+            //changeTimeTo(ms);
+            mModel.getmCurrentPosition().setValue(ms);
         }
     }
 
-    public boolean changeTimeTo(int ms){
-        Log.d("CHANGEMENT A ",String.valueOf(ms));
+    public void changeTimeTo(int ms){
         videoView.seekTo(ms);
-        return true;
+    }
+
+    public void changeURLTo(int ms){
+        myWebView.loadUrl(getChapterByTime(ms).getUrl());
+    }
+
+    public Chapter getChapterByTime(int ms){
+        int j = 0;
+        while(j < chapters.length && chapters[j].getMsTime() != ms){
+            j++;
+        }
+        return chapters[j];
     }
 
 }

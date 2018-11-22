@@ -2,35 +2,43 @@
   "chapters":[
     {
       "title":"Intro",
-      "start_time":1
+      "start_time":1,
+      "url":"https://fr.wikipedia.org/wiki/Introduction_en_bourse"
     },
     {
       "title":"Title",
-      "start_time":21
+      "start_time":21,
+      "url":"https://fr.wikipedia.org/wiki/Titres_et_pr%C3%A9dicats"
     },
     {
       "title":"Butterfly",
-      "start_time":71
+      "start_time":71,
+      "url":"https://en.wikipedia.org/wiki/Papillon_Soo_Soo"
     },
     {
       "title":"Assault",
-      "start_time":147
+      "start_time":147,
+      "url":"https://en.wikipedia.org/wiki/Assault_course"
     },
     {
       "title":"Preparation",
-      "start_time":240
+      "start_time":240,
+      "url":"http://chefsimon.com/gourmets/chef-simon/recettes/preparer-les-moules"
     },
     {
       "title":"Payback",
-      "start_time":300
+      "start_time":300,
+      "url":"https://en.wikipedia.org/wiki/Payback_(1999_film)"
     },
     {
       "title":"Cast",
-      "start_time":491
+      "start_time":491,
+      "url":"https://en.wikipedia.org/wiki/CAST_(company)"
     },
     {
       "title":"End",
-      "start_time":581
+      "start_time":581,
+      "url":"https://en.wikipedia.org/wiki/Big_Buck_Bunny"
     }
   ]
 }
