@@ -2,6 +2,7 @@ package com.example.nilskerkhof.myapplication;
 
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -47,16 +48,10 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         myWebView = findViewById(R.id.webView);
         myWebView.setWebViewClient(new WebViewClient());
-        videoView = findViewById(R.id.videoView);
-        final Observer<Integer> posObserver = new Observer<Integer>() {
-            @Override
-            public void onChanged(@Nullable final Integer position) {
-                //changeTimeTo(position);
-                changeURLTo(position);
-            }
-        };
 
-        mModel.getmCurrentPosition().observe(this, posObserver);
+        videoView = findViewById(R.id.videoView);
+
+
         if(mediaController == null){
             mediaController = new MediaController(MainActivity.this);
             mediaController.setAnchorView(videoView);
@@ -82,11 +77,38 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
+        final Observer<Integer> posObserver = new Observer<Integer>() {
+            @Override
+            public void onChanged(@Nullable final Integer position) {
+                //changeTimeTo(position);
+                changeURLTo(position);
+                for(Chapter c : chapters){
+                    Button b = c.getAssocButton();
+                    setUnactiveColorButton(b);
+                }
+                setActiveColorButton(getButtonByTime(position));
+            }
+        };
+        mModel.getmCurrentPosition().observe(this, posObserver);
+
         mHandler = new Handler();
         mStatusChecker.run();
     }
 
 
+    public Button getButtonByTime(int ms){
+        return getChapterByTime(ms).getAssocButton();
+    }
+
+    public void setActiveColorButton(Button b){
+        b.setBackgroundColor(Color.BLACK);
+        b.setTextColor(Color.WHITE);
+    }
+
+    public void setUnactiveColorButton(Button b){
+        b.setBackgroundColor(Color.WHITE);
+        b.setTextColor(Color.BLACK);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -210,7 +232,10 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void changeURLTo(int ms){
-        myWebView.loadUrl(getChapterByTime(ms).getUrl());
+        String urlToLoad = getChapterByTime(ms).getUrl();
+        if(!urlToLoad.equals(myWebView.getOriginalUrl())){
+            myWebView.loadUrl(getChapterByTime(ms).getUrl());
+        }
     }
 
     public Chapter getChapterByTime(int ms){
